@@ -1,0 +1,64 @@
+# ============================================
+# Climy - Python GitIgnore
+# ============================================
+
+# --- Ambientes Virtuais ---
+.venv/
+venv/
+ENV/
+env/
+bin/
+lib/
+include/
+
+# --- Caches do Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+# --- Configurações de Ambiente (SENSÍVEL) ---
+.env
+.flaskenv
+*.secret
+
+# --- Relatórios de Teste e Cobertura ---
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+nosetests.xml
+pytest_benchmark/
+benchmark_results/
+
+# --- IDEs e Editores ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# --- Build e Distribuição ---
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Logs ---
+*.log
+logs/
