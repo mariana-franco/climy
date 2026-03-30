@@ -95,9 +95,51 @@ def safe(val):
     return html.escape(str(val)) if val is not None else ""
 
 
-def get_weather_emoji(code):
-    """Retorna o emoji correspondente ao código WMO."""
-    return WMO_EMOJIS.get(code, "🌡️") if code is not None else "🌡️"
+def get_weather_emoji(code, is_day=True):
+    """Retorna o emoji correspondente ao código WMO, distinguindo dia e noite."""
+    if code is None:
+        return "🌡️"
+
+    if code == 0:
+        return "☀️" if is_day else "🌙"
+    if code == 1:
+        return "🌤️" if is_day else "🌙"
+    if code == 2:
+        return "⛅" if is_day else "☁️"
+    if code == 3:
+        return "☁️"
+    if code in {45, 48}:
+        return "🌫️"
+    if code in {51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99}:
+        return "🌧️" if code in {51, 53, 55, 61, 63, 65, 80, 81} else "⛈️"
+
+    return "🌡️"
+
+
+def is_daytime(now_dt, daily_forecast=None):
+    """Determina se é dia ou noite com base em horários de hoje (sunrise/sunset)."""
+    if daily_forecast is None:
+        return 6 <= now_dt.hour < 19
+
+    sunrise = getattr(daily_forecast, "sunrise", None)
+    sunset = getattr(daily_forecast, "sunset", None)
+
+    try:
+        if not sunrise or not sunset:
+            return 6 <= now_dt.hour < 19
+
+        sr = datetime.fromisoformat(sunrise)
+        ss = datetime.fromisoformat(sunset)
+
+        if now_dt.tzinfo and sr.tzinfo is None:
+            sr = sr.replace(tzinfo=now_dt.tzinfo)
+            ss = ss.replace(tzinfo=now_dt.tzinfo)
+        if not now_dt.tzinfo and sr.tzinfo:
+            now_dt = now_dt.replace(tzinfo=sr.tzinfo)
+
+        return sr <= now_dt < ss
+    except (ValueError, TypeError):
+        return 6 <= now_dt.hour < 19
 
 
 def get_wind_direction(degree):
@@ -268,7 +310,7 @@ def render_search_area():
 render_search_area()
 if st.session_state.city:
     curr_city = st.session_state.city
-    now_dt = datetime.now()
+    now_dt = datetime.now(tz)
 
     # Expiração de cache
     if st.session_state.weather:
@@ -312,7 +354,8 @@ if st.session_state.city:
     if w_code is None:
         w_code = 0
 
-    wxe = get_weather_emoji(w_code)
+    is_day = is_daytime(now_dt, fc.today if fc is not None else None)
+    wxe = get_weather_emoji(w_code, is_day=is_day)
 
     rv = rn if isinstance(rn, (int, float)) else 0
     rcl_class = " rain-hi" if rv > 30 else ""
@@ -408,7 +451,7 @@ if st.session_state.city:
                     f'border-radius:16px;padding:.65rem .55rem;text-align:center;box-shadow:0 1px 1px rgba(30,58,95,.07);">'
                     f'<div style="font-size:.8rem;font-weight:600;color:{col3};">'
                     f'{"agora" if is_now else dt_obj.strftime("%Hh")}</div>'
-                    f'<div style="font-size:1.5rem;margin:.2rem 0"><span class="emoji-anim">{get_weather_emoji(h_item.get("weather_code"))}</span></div>'
+                    f'<div style="font-size:1.5rem;margin:.2rem 0"><span class="emoji-anim">{get_weather_emoji(h_item.get("weather_code"), is_day=(6 <= dt_obj.hour < 19))}</span></div>'
                     f'<div style="font-size:1rem;font-weight:800;color:{col};">{temp_h:.0f}°</div>'
                     f'<div style="font-size:.7rem;font-weight:600;color:{col3};"><span style="margin-right:2px;" class="emoji-anim">🌧️</span>{rain_h:.0f}%</div></div>'
                 )
