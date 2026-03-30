@@ -23,12 +23,62 @@
     --r-xl: 32px;
 }
 
+/* Tema Escuro */
+[data-theme="dark"] {
+    --bg: hsl(210 25% 12%);
+    --card: hsl(210 20% 16%);
+    --border: hsl(210 18% 24%);
+    --text: hsl(210 25% 88%);
+    --text-2: hsl(210 20% 85%);
+    --text-3: hsl(210 15% 75%);
+    --text-h: hsl(210 82% 68%);
+    --blue: hsl(210 82% 68%);
+    --blue-dk: hsl(210 82% 78%);
+    --blue-dim: hsl(210 82% 25%);
+    --orange: hsl(30 92% 68%);
+    --red: hsl(0 72% 65%);
+    --red-dim: hsl(0 72% 20%);
+    --sh: 0 2px 6px hsl(0 0% 0%/.3), 0 1px 2px hsl(0 0% 0%/.2);
+    --sh-lg: 0 8px 16px hsl(0 0% 0%/.4), 0 2px 4px hsl(0 0% 0%/.3);
+}
+
 /* reset */
 html,
 body,
 .stApp {
     background: var(--bg) !important;
     font-family: var(--f) !important;
+}
+
+/* Aplicação do tema escuro via atributo data */
+body[data-theme="dark"] {
+    background: var(--bg) !important;
+}
+
+/* Focus indicators para acessibilidade */
+*:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Melhorias de contraste para WCAG AA */
+.hero-temp,
+.hero-city,
+.hero-wx {
+    color: var(--text-h);
+}
+
+/* Transições suaves */
+.hero,
+.hm,
+button {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--sh-lg);
 }
 
 * {
@@ -151,12 +201,31 @@ div[data-testid="InputInstructions"] {
     }
 }
 
+
+
+
+
 .hero-loc {
     font-size: .8rem;
     font-weight: 700;
     color: var(--text-3);
     text-transform: uppercase;
     letter-spacing: .05em;
+}
+
+.autocomplete-item {
+    padding: 0.45rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 0.4rem;
+    background: var(--card);
+    color: var(--text);
+    font-weight: 600;
+}
+
+.autocomplete-item strong {
+    color: var(--blue);
+    font-weight: 700;
 }
 
 .hero-city {
@@ -208,10 +277,57 @@ div[data-testid="InputInstructions"] {
     animation: bob 4s ease-in-out infinite;
 }
 
+/* Responsividade para telas menores */
+@media (max-width: 480px) {
+    .hero-temp {
+        font-size: 5rem;
+    }
+
+    .hero-unit {
+        font-size: 3rem;
+    }
+
+    .hero-wx {
+        font-size: 5rem !important;
+    }
+
+    .hero-city {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 380px) {
+    .hero-temp {
+        font-size: 4rem;
+    }
+
+    .hero-unit {
+        font-size: 2.5rem;
+    }
+
+    .hero-wx {
+        font-size: 4rem !important;
+    }
+
+    .hero-city {
+        font-size: 1.3rem;
+    }
+}
+
 .bob {
     font-size: 1.5rem;
     margin: .2rem 0;
     animation: bob 4s ease-in-out infinite !important;
+}
+
+/* Animação para todos os emojis */
+.emoji-anim {
+    animation: bob 4s ease-in-out infinite;
+    display: inline-block;
+}
+
+.hero-mets .hm-ico {
+    animation: bob 4s ease-in-out infinite;
 }
 
 @keyframes bob {

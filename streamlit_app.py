@@ -116,8 +116,18 @@ def format_population(n):
         if n >= 1_000:
             return f"{n/1_000:.0f}k hab."
         return f"{n} hab."
-    except (ValueError, TypeError):
+    except (TypeError, ValueError):
+        return "—"
+
+
+def _build_city_label(city_data: dict) -> str:
+    if not city_data:
         return ""
+    name = city_data.get("name", "")
+    state = city_data.get("state", "")
+    country = city_data.get("country", "")
+    parts = [p for p in (name, state, country) if p]
+    return " — ".join(parts)
 
 
 def format_location_label(city_data):
@@ -147,18 +157,56 @@ def get_temp_icon(t):
         return "🌡️"
 
 
-# --- Inicialização do Estado (Session State) ---
-for state_key, default_val in [
-    ("city", None),
-    ("res", []),
-    ("weather", None),
-    ("forecast", None),
-]:
-    if state_key not in st.session_state:
-        st.session_state[state_key] = default_val
+def get_weather_description(code):
+    """Retorna descrição textual do código WMO."""
+    descriptions = {
+        0: "Céu limpo",
+        1: "Predominantemente limpo",
+        2: "Parcialmente nublado",
+        3: "Nublado",
+        45: "Neblina",
+        48: "Neblina com geada",
+        51: "Garoa leve",
+        53: "Garoa moderada",
+        55: "Garoa densa",
+        61: "Chuva leve",
+        63: "Chuva moderada",
+        65: "Chuva forte",
+        80: "Pancadas de chuva leves",
+        81: "Pancadas de chuva moderadas",
+        82: "Pancadas de chuva fortes",
+        95: "Tempestade",
+        96: "Tempestade com granizo",
+        99: "Tempestade forte com granizo",
+    }
+    return descriptions.get(code, "Condição desconhecida")
+
+
+def initialize_session_state():
+    """Inicializa o estado da sessão com valores padrão."""
+    default_state = {
+        "city": None,
+        "res": [],
+        "weather": None,
+        "forecast": None,
+        "is_loading": False,
+        "search_history": [],
+        "theme": "light",
+        "last_update": None,
+        "show_tips": True,
+        "tooltips_enabled": True,
+        "selected_city": None,
+        "main_search": "",
+        "search_results": [],
+    }
+
+    for key, value in default_state.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
 
 
 # --- Header ---
+initialize_session_state()
 st.markdown(
     '<div class="c-title"><h1>🌤️ Climy</h1><p>Sua previsão do tempo sempre atualizada!</p></div>',
     unsafe_allow_html=True,
@@ -171,45 +219,53 @@ def format_city_label(item: dict) -> str:
         return ""
     location_parts = [item.get("state"), item.get("country")]
     location_str = ", ".join(filter(None, location_parts))
-    pop = item.get("population", 0)
-    pop_str = f" · {pop:,} hab.".replace(",", ".") if pop and pop > 0 else ""
     label = f"📍 {item.get('name', 'Desconhecido')}"
     if location_str:
         label += f" — {location_str}"
-    label += pop_str
     return label
 
 
-search_area = st.empty()
+def render_search_area():
+    """Renderiza a área de busca com input e botão, mantendo o comportamento atual."""
+    search_area = st.empty()
 
-# 1. ESTADO DE BUSCA: Se não há cidade, mostra o campo e o botão
-if not st.session_state.get("city"):
-    with search_area.container():
-        col1, col2 = st.columns([7, 3])
-        with col1:
-            query = st.text_input(
-                "Busca",
-                placeholder="Digite o nome da cidade...",
-                label_visibility="collapsed",
-                key="main_search",
-            )
-        with col2:
-            btn_buscar = st.button("Buscar 🔍", use_container_width=True)
+    if not st.session_state.get("city"):
+        with search_area.container():
+            col1, col2 = st.columns([7, 3])
+            with col1:
+                query = st.text_input(
+                    "Busca",
+                    placeholder="Digite o nome da cidade",
+                    label_visibility="collapsed",
+                    key="main_search",
+                )
 
-        if btn_buscar or (query and len(query) >= 3):
-            results = search_cities(query)  # Sua função de API
-            if results:
-                for item in results:
-                    if st.button(
-                        format_city_label(item),
-                        key=f"btn_{item['lat']}_{item['lon']}",
-                        use_container_width=True,
-                    ):
-                        st.session_state.city = item
-                        st.rerun()
+            with col2:
+                btn_buscar = st.button("Buscar 🔍", use_container_width=True)
+
+            if btn_buscar or (query and len(query) >= 3):
+                results = search_cities(query)
+                if results:
+                    for item in results:
+                        if st.button(
+                            format_city_label(item),
+                            key=f"btn_{item['lat']}_{item['lon']}",
+                            use_container_width=True,
+                        ):
+                            st.session_state.city = item
+                            st.session_state.weather = None
+                            st.session_state.forecast = None
+                            st.session_state.last_update = None
+                            st.rerun()
+                else:
+                    st.markdown(
+                        '<div style="background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 10px; border-radius: 8px;">⚠️ Cidade não encontrada. Revise o nome e tente novamente.</div>',
+                        unsafe_allow_html=True,
+                    )
 
 
 # --- Dashboard ---
+render_search_area()
 if st.session_state.city:
     curr_city = st.session_state.city
     now_dt = datetime.now()
@@ -230,6 +286,7 @@ if st.session_state.city:
 
                 st.session_state.weather = {"d": w_data, "rain": rn_data, "at": now_dt}
                 st.session_state.forecast = fc_data
+                st.session_state.last_update = now_dt
             except WeatherAPIError:
                 logging.exception("Erro ao carregar dados")
                 st.error("Erro ao carregar dados.")
@@ -244,7 +301,18 @@ if st.session_state.city:
     temp = getattr(w, "temperature", 0) or 0
     feels = getattr(w, "feels_like", 0) or 0
     cond_str = safe(getattr(w, "condition", "Desconhecido"))
-    w_code = getattr(w, "weather_code", 0)
+    # Garante que o ícone hero segue a mesma previsão usada nas próximas horas/dias
+    w_code = None
+    if fc and getattr(fc, "current", None):
+        w_code = getattr(fc.current, "weather_code", None)
+
+    if w_code is None and w is not None:
+        w_code = getattr(w, "weather_code", None)
+
+    if w_code is None:
+        w_code = 0
+
+    wxe = get_weather_emoji(w_code)
 
     rv = rn if isinstance(rn, (int, float)) else 0
     rcl_class = " rain-hi" if rv > 30 else ""
@@ -259,14 +327,18 @@ if st.session_state.city:
         t_max = getattr(fc.daily[0], "max_temp", temp)
         t_min = getattr(fc.daily[0], "min_temp", temp)
 
-    wxe = get_weather_emoji(w_code)
+    update_time_str = (
+        st.session_state.last_update.strftime("%H:%M")
+        if st.session_state.last_update
+        else "--:--"
+    )
 
     # HERO HTML
     hero_html = f"""
 <div class="hero">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
         <div class="hero-loc">{safe(format_location_label(curr_city))}</div>
-        <div class="hero-loc">{label_hoje}</div>
+        <div class="hero-loc">🕑 {label_hoje}</div>
     </div>
     <div class="hero-city" style="font-size: 1.4rem; margin-bottom: 10px;">{safe(curr_city["name"])}</div>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
@@ -279,9 +351,9 @@ if st.session_state.city:
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <div class="hero-feels">Sensação térmica de {feels:.0f}°</div>
         <div class="hero-min-max" style="font-weight: 700;">
-            <span style="color:var(--blue)">↓{t_min:.0f}°</span>
-            <span style="margin: 0 5px; opacity: 0.1;">|</span>
             <span style="color:var(--orange)">↑{t_max:.0f}°</span>
+            <span style="margin: 0 5px; opacity: 0.1;">|</span>
+            <span style="color:var(--blue)">↓{t_min:.0f}°</span>
         </div>
     </div>
     <div class="hero-cond">{cond_str}</div>
@@ -310,7 +382,7 @@ if st.session_state.city:
     # PRÓXIMAS 24 HORAS
     if fc and getattr(fc, "hourly", None):
         st.markdown(
-            f'<div class="sec">{dyn_icon}  Próximas 24 horas</div>',
+            f'<div class="sec">{dyn_icon} Próximas 24 horas</div>',
             unsafe_allow_html=True,
         )
 
@@ -336,9 +408,9 @@ if st.session_state.city:
                     f'border-radius:16px;padding:.65rem .55rem;text-align:center;box-shadow:0 1px 1px rgba(30,58,95,.07);">'
                     f'<div style="font-size:.8rem;font-weight:600;color:{col3};">'
                     f'{"agora" if is_now else dt_obj.strftime("%Hh")}</div>'
-                    f'<div style="font-size:1.5rem;margin:.2rem 0">{get_weather_emoji(h_item.get("weather_code"))}</div>'
+                    f'<div style="font-size:1.5rem;margin:.2rem 0"><span class="emoji-anim">{get_weather_emoji(h_item.get("weather_code"))}</span></div>'
                     f'<div style="font-size:1rem;font-weight:800;color:{col};">{temp_h:.0f}°</div>'
-                    f'<div style="font-size:.7rem;font-weight:600;color:{col3};"><span style="margin-right:2px;">🌧️</span>{rain_h:.0f}%</div></div>'
+                    f'<div style="font-size:.7rem;font-weight:600;color:{col3};"><span style="margin-right:2px;" class="emoji-anim">🌧️</span>{rain_h:.0f}%</div></div>'
                 )
             except (ValueError, TypeError, KeyError):
                 continue
@@ -351,7 +423,10 @@ if st.session_state.city:
 
     # PRÓXIMOS 7 DIAS
     if fc and getattr(fc, "daily", None):
-        st.markdown('<div class="sec">📅 Próximos 7 dias</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="sec">📅 Próximos 7 dias</div>',
+            unsafe_allow_html=True,
+        )
         d_html_list = ""
 
         for d_item in fc.daily[:7]:
@@ -368,7 +443,7 @@ if st.session_state.city:
                     f'border-radius:16px;padding:.75rem .55rem;text-align:center;box-shadow:0 1px 1px rgba(30,58,95,.07);">'
                     f'<div style="font-size:.7rem;font-weight:600;color:{col3};text-transform:uppercase;">'
                     f'{"Hoje" if is_today else get_weekday_abbr(d_item.date)}</div>'
-                    f'<div style="font-size:1.5rem;margin:.2rem 0">{get_weather_emoji(getattr(d_item, "weather_code", None))}</div>'
+                    f'<div style="font-size:1.5rem;margin:.2rem 0"><span class="emoji-anim">{get_weather_emoji(getattr(d_item, "weather_code", None))}</span></div>'
                     f'<div style="font-size:1rem;font-weight:800;color:{col}">{getattr(d_item, "max_temp", 0):.0f}°<span style="font-size:.6rem;font-weight:300;"> máx</span></div>'
                     f'<div style="font-size:.6rem;font-weight:600;color:{col3};">{getattr(d_item, "min_temp", 0):.0f}°<span style="font-size:.6rem;font-weight:300;"> mín</span></div></div>'
                 )
@@ -384,7 +459,6 @@ if st.session_state.city:
     # Botões de Ação
     st.markdown("<br>", unsafe_allow_html=True)
     ca, cb = st.columns(2)
-
     with ca:
         if st.button("🔄 Atualizar", use_container_width=True):
             st.session_state.weather = None
@@ -395,9 +469,15 @@ if st.session_state.city:
             st.session_state.city, st.session_state.res = None, []
             st.rerun()
 
+    update_time_text = (
+        st.session_state.last_update.strftime("%H:%M")
+        if st.session_state.last_update
+        else "--:--"
+    )
+
     # Footer
     st.markdown(
         f'<div class="foot"><span>Climy © {now_dt.year}</span>'
-        f'<span>Dados via <a href="https://open-meteo.com/" target="_blank">Open-Meteo</a></span></div>',
+        f'<span>Dados via <a href="https://open-meteo.com/" target="_blank">Open-Meteo</a> • Atualizado em {update_time_text}</span></div>',
         unsafe_allow_html=True,
     )
