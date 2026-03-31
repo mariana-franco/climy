@@ -43,12 +43,7 @@ Desenvolvida com <strong>Python + Streamlit</strong> e integração com a API Op
 - Melhor tempo de resposta e escalabilidade
 
 ---
-├── services/
-│   └── weather_api.py      # Integração com APIs externas
-│
-├── src/
-│   └── config.py           # Configurações globais (ex: CACHE_TTL)
-│
+
 ## 🏗️ Arquitetura do Projeto
 
 O projeto segue uma abordagem baseada em separação de responsabilidades, facilitando manutenção, testes e escalabilidade:
