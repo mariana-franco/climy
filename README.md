@@ -19,6 +19,7 @@ Desenvolvida com <strong>Python + Streamlit</strong> e integração com a API Op
 - Sensação térmica
 - Umidade relativa do ar
 - Velocidade do vento
+- Probabilidade de chuva
 - Condição climática com ícones dinâmicos (WMO)
 
 ### 📅 Previsão Horária (24h)
@@ -55,15 +56,52 @@ O projeto segue uma abordagem baseada em separação de responsabilidades, facil
 ```text
 climy/
 │
-├── streamlit_app.py        # Entry point (UI + estado da aplicação)
-├── services/
-│   └── weather_api.py      # Integração com APIs externas
-├── src/
-│   └── config.py           # Configurações globais (ex: CACHE_TTL)
-├── assets/
-│   └── style.css           # Customização visual
-├── requirements.txt
-└── README.md
+├── streamlit_app.py              # Entry point (UI + estado da aplicação)
+├── run.py                        # Script de execução auxiliar
+├── requirements.txt              # Dependências do projeto
+├── README.md                     # Documentação principal
+├── docs/                         # Documentação e guias do projeto
+│   ├── 00-index-geral.md
+│   ├── 01-instalacao-configuracao.md
+│   ├── 02-basico-python.md
+│   ├── 03-estruturas-controle.md
+│   ├── 04-funcoes-modulos.md
+│   ├── 05-estruturas-dados.md
+│   ├── 06-programacao-orientada-objetos.md
+│   ├── 07-tratamento-erros.md
+│   ├── 08-trabalhando-arquivos.md
+│   ├── 09-entendendo-climy.md
+│   ├── 10-executando-climy.md
+│   ├── 11-codigo-fonte-climy.md
+│   ├── 12-git-github.md
+│   ├── 13-ollama-vscode.md
+│   ├── 14-prompt-engineering.md
+│   ├── 15-boas-praticas.md
+│   ├── 16-testing-debugging.md
+│   ├── 17-dicas-troubleshooting.md
+│   └── README.md
+├── assets/                       # Estilos e scripts do front-end
+│   ├── style.css
+│   └── interactions.js
+├── services/                     # Integração com APIs externas
+│   └── weather_api.py
+├── src/                          # Configurações e modelos do domínio
+│   ├── config.py
+│   └── models/
+│       └── weather.py
+└── tests/                        # Testes automatizados
+    ├── conftest.py
+    ├── test_cache.py
+    ├── test_config.py
+    ├── test_coordinates.py
+    ├── test_geocoding_api.py
+    ├── test_integration.py
+    ├── test_models.py
+    ├── test_performance.py
+    ├── test_validation.py
+    ├── test_weather_api.py
+    └── mocks/
+        └── mock_data.py
 ```
 
 ### 🔹 Camadas
