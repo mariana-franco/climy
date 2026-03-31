@@ -101,9 +101,9 @@ def get_weather_emoji(code, is_day=True):
         return "🌡️"
 
     if code == 0:
-        return "☀️" if is_day else "🌙"
+        return "🌞" if is_day else "🌝"
     if code == 1:
-        return "🌤️" if is_day else "🌙"
+        return "🌤️" if is_day else "🌛"
     if code == 2:
         return "⛅" if is_day else "☁️"
     if code == 3:
